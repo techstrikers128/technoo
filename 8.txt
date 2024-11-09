@@ -1,0 +1,117 @@
+Q8. Write a program to simulate CPU Scheduling Algorithms: Round Robin (Preemptive)
+
+
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Scanner;
+
+class Process {
+    int processId;
+    int arrivalTime;
+    int burstTime;
+    int remainingTime;
+    int completionTime;
+    int waitingTime;
+    int turnaroundTime;
+
+    public Process(int processId, int arrivalTime, int burstTime) {
+        this.processId = processId;
+        this.arrivalTime = arrivalTime;
+        this.burstTime = burstTime;
+        this.remainingTime = burstTime; // Remaining time initialized to burst time
+    }
+}
+
+public class RoundRobinScheduling {
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Enter the number of processes: ");
+        int numProcesses = scanner.nextInt();
+
+        ArrayList<Process> processes = new ArrayList<>();
+
+        for (int i = 0; i < numProcesses; i++) {
+            System.out.print("Enter arrival time for Process " + (i + 1) + ": ");
+            int arrivalTime = scanner.nextInt();
+            System.out.print("Enter burst time for Process " + (i + 1) + ": ");
+            int burstTime = scanner.nextInt();
+            processes.add(new Process(i + 1, arrivalTime, burstTime));
+        }
+
+        System.out.print("Enter time quantum: ");
+        int timeQuantum = scanner.nextInt();
+
+        // Run Round Robin Scheduling
+        simulateRoundRobin(processes, timeQuantum);
+
+        // Display process information
+        System.out.println("\nProcess\tArrival Time\tBurst Time\tCompletion Time\tWaiting Time\tTurnaround Time");
+        for (Process process : processes) {
+            System.out.printf("%d\t\t%d\t\t%d\t\t%d\t\t%d\t\t%d\n", 
+                process.processId, process.arrivalTime, process.burstTime, 
+                process.completionTime, process.waitingTime, process.turnaroundTime);
+        }
+
+        // Calculate and display average waiting and turnaround times
+        double totalWaitingTime = 0;
+        double totalTurnaroundTime = 0;
+        for (Process process : processes) {
+            totalWaitingTime += process.waitingTime;
+            totalTurnaroundTime += process.turnaroundTime;
+        }
+
+        System.out.printf("\nAverage Waiting Time: %.2f", (totalWaitingTime / numProcesses));
+        System.out.printf("\nAverage Turnaround Time: %.2f", (totalTurnaroundTime / numProcesses));
+
+        scanner.close();
+    }
+
+    public static void simulateRoundRobin(ArrayList<Process> processes, int timeQuantum) {
+        Queue<Process> queue = new LinkedList<>();
+        int currentTime = 0;
+        int completed = 0;
+        int n = processes.size();
+
+        // Sort processes by arrival time
+        processes.sort((p1, p2) -> Integer.compare(p1.arrivalTime, p2.arrivalTime));
+
+        int index = 0;
+        while (completed != n) {
+            // Add all processes that have arrived to the queue
+            while (index < n && processes.get(index).arrivalTime <= currentTime) {
+                queue.add(processes.get(index));
+                index++;
+            }
+
+            if (!queue.isEmpty()) {
+                Process currentProcess = queue.poll();
+
+                // Execute the current process for time quantum or remaining time
+                int timeSlice = Math.min(timeQuantum, currentProcess.remainingTime);
+                currentProcess.remainingTime -= timeSlice;
+                currentTime += timeSlice;
+
+                // Add any new arriving processes during this time slice
+                while (index < n && processes.get(index).arrivalTime <= currentTime) {
+                    queue.add(processes.get(index));
+                    index++;
+                }
+
+                if (currentProcess.remainingTime > 0) {
+                    queue.add(currentProcess); // Re-queue the process if it has remaining time
+                } else {
+                    // Process is complete
+                    completed++;
+                    currentProcess.completionTime = currentTime;
+                    currentProcess.turnaroundTime = currentProcess.completionTime - currentProcess.arrivalTime;
+                    currentProcess.waitingTime = currentProcess.turnaroundTime - currentProcess.burstTime;
+                }
+            } else {
+                currentTime++;
+            }
+        }
+    }
+}

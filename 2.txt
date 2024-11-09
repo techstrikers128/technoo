@@ -1,0 +1,101 @@
+Q2. Design suitable data structures and implement pass2 of a two pass assembler for pseudo-machine. (BE READY WITH YOUR IC CODE OF PASS 1).
+
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+
+public class Pass2Assembler {
+    // Sample tables (in a real assembler, these would be populated in Pass 1)
+    private static HashMap<String, Integer> symbolTable = new HashMap<>();
+    private static HashMap<String, Integer> literalTable = new HashMap<>();
+    private static HashMap<String, String> opcodeTable = new HashMap<>();
+    private static int startAddress = 100;  // Starting address
+
+    public static void main(String[] args) {
+        // Initialize symbol and literal tables
+        symbolTable.put("A", 102);
+        literalTable.put("5", 105);
+
+        // Initialize opcode table
+        opcodeTable.put("MOV", "01");
+        opcodeTable.put("ADD", "02");
+        opcodeTable.put("SUB", "03");
+
+        // Sample intermediate code (IC)
+        List<String[]> IC = List.of(
+            new String[]{"AD", "START", "100"},
+            new String[]{"IS", "MOV", "A", "B"},
+            new String[]{"IS", "ADD", "A", "5"},
+            new String[]{"DL", "DC", "10"},
+            new String[]{"IS", "SUB", "A", "2"},
+            new String[]{"AD", "END"}
+        );
+
+        // Run Pass 2
+        List<String> machineCodeOutput = pass2(IC);
+
+        // Display generated machine code
+        for (String line : machineCodeOutput) {
+            System.out.println(line);
+        }
+    }
+
+    public static List<String> pass2(List<String[]> IC) {
+        List<String> machineCode = new ArrayList<>();
+        int currentAddress = startAddress;
+
+        for (String[] instruction : IC) {
+            String line = "";
+            String instType = instruction[0];
+
+            switch (instType) {
+                case "AD":  // Assembler Directive
+                    if ("START".equals(instruction[1])) {
+                        currentAddress = Integer.parseInt(instruction[2]);
+                    } else if ("END".equals(instruction[1])) {
+                        return machineCode;  // End processing
+                    }
+                    break;
+
+                case "IS":  // Imperative Statement
+                    String opcode = opcodeTable.get(instruction[1]);
+                    if (opcode == null) {
+                        throw new IllegalArgumentException("Unknown opcode: " + instruction[1]);
+                    }
+                    line += opcode + " ";
+
+                    // Process operands
+                    for (int i = 2; i < instruction.length; i++) {
+                        String operand = instruction[i];
+                        if (operand.matches("\\d+")) {  // Literal
+                            int address = literalTable.getOrDefault(operand, -1);
+                            if (address == -1) throw new IllegalArgumentException("Undefined literal: " + operand);
+                            line += String.format("%03d ", address);
+                        } else if (symbolTable.containsKey(operand)) {  // Symbol
+                            int address = symbolTable.get(operand);
+                            line += String.format("%03d ", address);
+                        } else {
+                            throw new IllegalArgumentException("Undefined symbol: " + operand);
+                        }
+                    }
+                    machineCode.add(line.trim());
+                    currentAddress++;
+                    break;
+
+                case "DL":  // Declarative Statement
+                    if ("DC".equals(instruction[1])) {  // Define constant
+                        line = String.format("%03d %s", currentAddress, instruction[2]);
+                        machineCode.add(line);
+                        currentAddress++;
+                    }
+                    break;
+
+                default:
+                    throw new IllegalArgumentException("Unknown instruction type: " + instType);
+            }
+        }
+
+        return machineCode;
+    }
+}

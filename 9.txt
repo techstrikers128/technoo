@@ -1,0 +1,105 @@
+Q9. Write a program to simulate Page replacement algorithm.
+
+
+import java.util.*;
+
+public class PageReplacementAlgorithms {
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Enter the number of frames: ");
+        int framesCount = scanner.nextInt();
+
+        System.out.print("Enter the number of pages: ");
+        int pagesCount = scanner.nextInt();
+
+        int[] pages = new int[pagesCount];
+        System.out.print("Enter the page reference string: ");
+        for (int i = 0; i < pagesCount; i++) {
+            pages[i] = scanner.nextInt();
+        }
+
+        System.out.println("\nFIFO Page Faults: " + fifoPageReplacement(pages, framesCount));
+        System.out.println("LRU Page Faults: " + lruPageReplacement(pages, framesCount));
+        System.out.println("Optimal Page Faults: " + optimalPageReplacement(pages, framesCount));
+
+        scanner.close();
+    }
+
+    // FIFO Page Replacement Algorithm
+    public static int fifoPageReplacement(int[] pages, int framesCount) {
+        Set<Integer> frames = new LinkedHashSet<>(framesCount);
+        Queue<Integer> fifoQueue = new LinkedList<>();
+        int pageFaults = 0;
+
+        for (int page : pages) {
+            if (!frames.contains(page)) {
+                if (frames.size() == framesCount) {
+                    int removedPage = fifoQueue.poll();
+                    frames.remove(removedPage);
+                }
+                frames.add(page);
+                fifoQueue.add(page);
+                pageFaults++;
+            }
+        }
+        return pageFaults;
+    }
+
+    // LRU Page Replacement Algorithm
+    public static int lruPageReplacement(int[] pages, int framesCount) {
+        Set<Integer> frames = new HashSet<>(framesCount);
+        Map<Integer, Integer> recentlyUsed = new HashMap<>();
+        int pageFaults = 0;
+
+        for (int i = 0; i < pages.length; i++) {
+            int page = pages[i];
+            if (!frames.contains(page)) {
+                if (frames.size() == framesCount) {
+                    int lruPage = Collections.min(recentlyUsed.entrySet(), Comparator.comparingInt(Map.Entry::getValue)).getKey();
+                    frames.remove(lruPage);
+                    recentlyUsed.remove(lruPage);
+                }
+                frames.add(page);
+                pageFaults++;
+            }
+            recentlyUsed.put(page, i); // Update or add the page's last used index
+        }
+        return pageFaults;
+    }
+
+    // Optimal Page Replacement Algorithm
+    public static int optimalPageReplacement(int[] pages, int framesCount) {
+        Set<Integer> frames = new HashSet<>(framesCount);
+        int pageFaults = 0;
+
+        for (int i = 0; i < pages.length; i++) {
+            int page = pages[i];
+            if (!frames.contains(page)) {
+                if (frames.size() == framesCount) {
+                    int pageToReplace = findOptimalReplacementPage(frames, pages, i + 1);
+                    frames.remove(pageToReplace);
+                }
+                frames.add(page);
+                pageFaults++;
+            }
+        }
+        return pageFaults;
+    }
+
+    private static int findOptimalReplacementPage(Set<Integer> frames, int[] pages, int startIndex) {
+        Map<Integer, Integer> futureUse = new HashMap<>();
+
+        for (Integer frame : frames) {
+            futureUse.put(frame, Integer.MAX_VALUE); // Assume a large distance if not used in future
+            for (int j = startIndex; j < pages.length; j++) {
+                if (pages[j] == frame) {
+                    futureUse.put(frame, j); // Update with the closest future index
+                    break;
+                }
+            }
+        }
+        return Collections.max(futureUse.entrySet(), Comparator.comparingInt(Map.Entry::getValue)).getKey();
+    }
+}

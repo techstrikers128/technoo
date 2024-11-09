@@ -1,0 +1,98 @@
+Q4. Design suitable data structures and implement Pass-II of a two-pass macro-processor.
+ (BE READY WITH YOUR IC CODE OF PASS 1))
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+public class Pass2MacroProcessor {
+
+    // Macro Name Table (MNT) - maps macro names to their starting index in the MDT
+    private static HashMap<String, Integer> MNT = new HashMap<>();
+    // Macro Definition Table (MDT) - stores macro definitions
+    private static ArrayList<String> MDT = new ArrayList<>();
+    // Argument List Array (ALA) - maps formal parameters to actual arguments for substitution
+    private static HashMap<String, String> ALA = new HashMap<>();
+    // Intermediate Code (IC) from Pass-I
+    private static List<String> IC = List.of(
+        "MOV A, B",
+        "CALL MACRO1 X, Y",
+        "ADD A, C",
+        "CALL MACRO2 D"
+    );
+
+    public static void main(String[] args) {
+        // Sample MNT (Macro Name Table)
+        MNT.put("MACRO1", 0); // MACRO1 definition starts at MDT index 0
+        MNT.put("MACRO2", 3); // MACRO2 definition starts at MDT index 3
+
+        // Sample MDT (Macro Definition Table)
+        MDT.add("LOAD &ARG1, &ARG2");  // MACRO1 definition line 1
+        MDT.add("ADD &ARG1, 1");       // MACRO1 definition line 2
+        MDT.add("STORE &ARG1");        // MACRO1 definition line 3
+        MDT.add("SUB &ARG1, 2");       // MACRO2 definition line 1
+
+        // Run Pass-II
+        List<String> expandedCode = pass2(IC);
+
+        // Display expanded code
+        for (String line : expandedCode) {
+            System.out.println(line);
+        }
+    }
+
+    public static List<String> pass2(List<String> IC) {
+        List<String> expandedCode = new ArrayList<>();
+
+        for (String line : IC) {
+            if (line.startsWith("CALL")) {
+                // Extract macro name and arguments
+                String[] parts = line.split(" ");
+                String macroName = parts[1];
+                String[] actualArgs = parts.length > 2 ? parts[2].split(",") : new String[0];
+
+                // Check if macro exists in MNT
+                if (MNT.containsKey(macroName)) {
+                    int mdtIndex = MNT.get(macroName);
+                    populateALA(macroName, actualArgs);  // Populate ALA with actual arguments
+                    expandMacro(mdtIndex, expandedCode); // Expand macro in output
+                } else {
+                    System.err.println("Undefined macro: " + macroName);
+                }
+            } else {
+                // Normal instruction, add directly to expanded code
+                expandedCode.add(line);
+            }
+        }
+
+        return expandedCode;
+    }
+
+    private static void populateALA(String macroName, String[] actualArgs) {
+        ALA.clear();
+        if ("MACRO1".equals(macroName)) {
+            ALA.put("&ARG1", actualArgs[0].trim());
+            ALA.put("&ARG2", actualArgs[1].trim());
+        } else if ("MACRO2".equals(macroName)) {
+            ALA.put("&ARG1", actualArgs[0].trim());
+        }
+    }
+
+    private static void expandMacro(int mdtIndex, List<String> expandedCode) {
+        while (mdtIndex < MDT.size() && !MDT.get(mdtIndex).equals("MEND")) {
+            String macroLine = MDT.get(mdtIndex);
+            String expandedLine = substituteArguments(macroLine);
+            expandedCode.add(expandedLine);
+            mdtIndex++;
+        }
+    }
+
+    private static String substituteArguments(String line) {
+        for (String param : ALA.keySet()) {
+            if (line.contains(param)) {
+                line = line.replace(param, ALA.get(param));
+            }
+        }
+        return line;
+    }
+}
